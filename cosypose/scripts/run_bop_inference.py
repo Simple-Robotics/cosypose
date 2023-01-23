@@ -245,7 +245,7 @@ def main():
     if args.n_views > 1:
         ds_names = ['hb', 'tless', 'ycbv']
     else:
-        ds_names = ['hb', 'icbin', 'itodd', 'lmo', 'tless', 'tudl', 'ycbv']
+        ds_names = ['hb', 'icbin', 'itodd', 'lmo', 'tless', 'tudl', 'ycbv', 'hope']
 
     for ds_name in ds_names:
         this_cfg = deepcopy(cfg)

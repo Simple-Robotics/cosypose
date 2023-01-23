@@ -123,9 +123,9 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'ycbv.pbr':
         ds_dir = BOP_DS_DIR / 'ycbv'
         ds = BOPDataset(ds_dir, split='train_pbr')
-    elif ds_name == 'hope.pbr':
-        ds_dir = BOP_DS_DIR / 'hope'
-        ds = BOPDataset(ds_dir, split='train_pbr')
+    # elif ds_name == 'hope.pbr':
+    #     ds_dir = BOP_DS_DIR / 'hope'
+    #     ds = BOPDataset(ds_dir, split='train_pbr')
 
     elif ds_name == 'hb.val':
         ds_dir = BOP_DS_DIR / 'hb'

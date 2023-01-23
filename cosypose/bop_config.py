@@ -71,10 +71,10 @@ BOP_CONFIG['ycbv'] = dict(
 )
 
 BOP_CONFIG['hope'] = dict(
-    input_resize=(640, 480),
+    input_resize=(1920, 1080),
     urdf_ds_name='hope',
     obj_ds_name='hope.bop',
-    train_pbr_ds_name=['hope.pbr'],
+    # train_pbr_ds_name=[hope.pbr],
     inference_ds_name=['hope.bop19'],
     test_ds_name=['hope.bop19'],
     val_ds_name=['hope.val'],
