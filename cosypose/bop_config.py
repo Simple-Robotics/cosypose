@@ -59,7 +59,6 @@ BOP_CONFIG['tudl'] = dict(
     train_synt_real_ds_names=[('tudl.pbr', 10), ('tudl.train.real', 1)]
 )
 
-
 BOP_CONFIG['ycbv'] = dict(
     input_resize=(640, 480),
     urdf_ds_name='ycbv',
@@ -71,6 +70,16 @@ BOP_CONFIG['ycbv'] = dict(
     train_synt_real_ds_names=[('ycbv.pbr', 20), ('ycbv.train.synt', 1), ('ycbv.train.real', 3)]
 )
 
+BOP_CONFIG['hope'] = dict(
+    input_resize=(640, 480),
+    urdf_ds_name='hope',
+    obj_ds_name='hope.bop',
+    train_pbr_ds_name=['hope.pbr'],
+    inference_ds_name=['hope.bop19'],
+    test_ds_name=['hope.bop19'],
+    val_ds_name=['hope.val'],
+)
+
 PBR_DETECTORS = dict(
     hb='detector-bop-hb-pbr--497808',
     icbin='detector-bop-icbin-pbr--947409',
@@ -79,6 +88,7 @@ PBR_DETECTORS = dict(
     tless='detector-bop-tless-pbr--873074',
     tudl='detector-bop-tudl-pbr--728047',
     ycbv='detector-bop-ycbv-pbr--970850',
+    hope='detector-bop-hope-pbr--15246',
 )
 
 PBR_COARSE = dict(
@@ -89,6 +99,7 @@ PBR_COARSE = dict(
     tless='coarse-bop-tless-pbr--506801',
     tudl='coarse-bop-tudl-pbr--373484',
     ycbv='coarse-bop-ycbv-pbr--724183',
+    hope='coarse-bop-hope-pbr-225203',
 )
 
 PBR_REFINER = dict(
@@ -99,6 +110,7 @@ PBR_REFINER = dict(
     tless='refiner-bop-tless-pbr--233420',
     tudl='refiner-bop-tudl-pbr--487212',
     ycbv='refiner-bop-ycbv-pbr--604090',
+    hope='refiner-bop-hope-pbr--955392',
 )
 
 SYNT_REAL_DETECTORS = dict(
