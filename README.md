@@ -509,7 +509,7 @@ Notes:
 <details>
 <summary>Click for details...</summary>
 
-We provide the training code that we used to train single-view single-object pose estimation models on the 7 core datasets (LM-O, TLESS, TUD-L, IC-BIN, ITODD, HB, YCB-V) and pre-trained detector and pose estimation models. Note that these models are different from the ones used in the paper. The differences with the models used in the paper are the following:
+We provide the training code that we used to train single-view single-object pose estimation models on the 7 core datasets (LM-O, TLESS, TUD-L, IC-BIN, ITODD, HB, YCB-V) and pre-trained detector and pose estimation models (core datasets + HOPE). Note that these models are different from the ones used in the paper. The differences with the models used in the paper are the following:
 
 - In the paper, we use already available detectors for T-LESS and YCB-Video. For the BOP20 challenge, we trained our own detectors on each dataset.
 - Detection and pose estimation models are trained using PBR synthetic images provided with the BOP challenge instead of using our own synthetic data to make it easier to compare fairly with the other approaches.
@@ -524,7 +524,7 @@ python -m cosypose.scripts.download --bop_dataset=DATASET --pbr_training_images
 python -m cosypose.scripts.download --urdf_models=DATASET
 ```
 
-for DATASET={hb,icbin,itodd,lm,lmo,tless,tudl,ycbv}. If you are not interested in training the models, you can remove the flag --pbr_training_images and you can omit lm.
+for DATASET={hb,icbin,itodd,lm,lmo,tless,tudl,ycbv,hope}. If you are not interested in training the models, you can remove the flag --pbr_training_images and you can omit lm.
 
 ## Downloading pre-trained models
 
@@ -574,6 +574,10 @@ where model_id is given by the table below:
 | ycbv    | detector   | SYNT+REAL       | detector-bop-ycbv-synt+real--292971  |
 | ycbv    | coarse     | SYNT+REAL       | coarse-bop-ycbv-synt+real--822463    |
 | ycbv    | refiner    | SYNT+REAL       | refiner-bop-ycbv-synt+real--631598   |
+|         |            |                 |                                      |
+| hope    | detector   | PBR             | detector-bop-hope-pbr--15246         |
+| hope    | coarse     | PBR             | coarse-bop-hope-pbr-225203           |
+| hope    | refiner    | PBR             | refiner-bop-hope-pbr--955392         |
 
 The detectors are MaskRCNN models with resnet50 FPN backbone. PBR corresponds to training only on provided synthetic images. SYNT+REAL corresponds to training on all available synthetic and real images when available (only for tless, tudl and ycbv). SYNT+REAL models are pre-trained from PBR.
 
