@@ -576,7 +576,7 @@ where model_id is given by the table below:
 | ycbv    | refiner    | SYNT+REAL       | refiner-bop-ycbv-synt+real--631598   |
 |         |            |                 |                                      |
 | hope    | detector   | PBR             | detector-bop-hope-pbr--15246         |
-| hope    | coarse     | PBR             | coarse-bop-hope-pbr-225203           |
+| hope    | coarse     | PBR             | coarse-bop-hope-pbr--225203          |
 | hope    | refiner    | PBR             | refiner-bop-hope-pbr--955392         |
 
 The detectors are MaskRCNN models with resnet50 FPN backbone. PBR corresponds to training only on provided synthetic images. SYNT+REAL corresponds to training on all available synthetic and real images when available (only for tless, tudl and ycbv). SYNT+REAL models are pre-trained from PBR.

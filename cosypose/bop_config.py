@@ -99,7 +99,7 @@ PBR_COARSE = dict(
     tless='coarse-bop-tless-pbr--506801',
     tudl='coarse-bop-tudl-pbr--373484',
     ycbv='coarse-bop-ycbv-pbr--724183',
-    hope='coarse-bop-hope-pbr-225203',
+    hope='coarse-bop-hope-pbr--225203',
 )
 
 PBR_REFINER = dict(
