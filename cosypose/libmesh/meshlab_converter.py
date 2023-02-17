@@ -23,10 +23,11 @@ def run_meshlab_script(in_path, out_path, script, cd_dir=None, has_textures=True
         cd_dir = '.'
     command = [f'cd {cd_dir} &&', 'LC_ALL=C',
                'meshlabserver', '-i', in_path.as_posix(), '-o', out_path.as_posix(),
-               '-s', script_path.as_posix(), '-om', 'vn']
+               '-m', 'vn']
     if has_textures:
         command += ['wt', 'vt']
-    print(command)
+    command += ['-s', script_path.as_posix()]
+    print(' '.join(command) + '\n')
     os.system(' '.join(command))
     script_path.unlink()
     return
