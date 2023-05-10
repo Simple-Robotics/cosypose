@@ -1,7 +1,12 @@
 import torch
-
+import numpy as np
+import wandb
 from .rotations import compute_rotation_matrix_from_ortho6d, compute_rotation_matrix_from_quaternions
 from .transform_ops import transform_pts
+from cosypose.utils.logging import get_logger
+from cosypose.config import DEBUG_DATA_DIR
+
+logger = get_logger(__name__)
 
 l1 = lambda diff: diff.abs()
 l2 = lambda diff: diff ** 2
@@ -43,12 +48,12 @@ def loss_CO_symmetric(TCO_possible_gt, TCO_pred, points, l1_or_l2=l1):
     losses_possible = l1_or_l2((TCO_pred_points.unsqueeze(1) - TCO_points_possible_gt).flatten(-2, -1)).mean(-1)
     loss, min_id = losses_possible.min(dim=1)
     TCO_assign = TCO_possible_gt[torch.arange(bsz), min_id]
-    return loss, TCO_assign
+    return loss, TCO_assign, TCO_points_possible_gt, TCO_pred_points
 
 
 def loss_refiner_CO_disentangled(TCO_possible_gt,
                                  TCO_input, refiner_outputs,
-                                 K_crop, points):
+                                 K_crop, points, _iteration=None):
     bsz = TCO_possible_gt.shape[0]
     assert TCO_possible_gt.shape[0] == bsz
     assert TCO_input.shape[0] == bsz
@@ -59,32 +64,63 @@ def loss_refiner_CO_disentangled(TCO_possible_gt,
 
     dR = compute_rotation_matrix_from_ortho6d(refiner_outputs[:, 0:6])
     vxvyvz = refiner_outputs[:, 6:9]
+    logger.info(f"vxvyvz {vxvyvz}")    
     TCO_gt = TCO_possible_gt[:, 0]
+    logger.info(f"TCO_gt {TCO_gt}")
 
     TCO_pred_orn = TCO_gt.clone()
     TCO_pred_orn[:, :3, :3] = dR @ TCO_input[:, :3, :3]
+    logger.info(f"dR {dR}")    
 
     TCO_pred_xy = TCO_gt.clone()
     z_gt = TCO_gt[:, 2, [3]]
     z_input = TCO_input[:, 2, [3]]
     vxvy = vxvyvz[:, :2]
     fxfy = K_crop[:, [0, 1], [0, 1]]
+    logger.info(f"fxfy {fxfy}")
     xsrcysrc = TCO_input[:, :2, 3]
     TCO_pred_xy[:, :2, 3] = ((vxvy / fxfy) + (xsrcysrc / z_input.repeat(1, 2))) * z_gt.repeat(1, 2)
 
     TCO_pred_z = TCO_gt.clone()
     vz = vxvyvz[:, [2]]
     TCO_pred_z[:, [2], [3]] = vz * z_input
-
-    loss_orn, _ = loss_CO_symmetric(TCO_possible_gt, TCO_pred_orn, points, l1_or_l2=l1)
-    loss_xy, _ = loss_CO_symmetric(TCO_possible_gt, TCO_pred_xy, points, l1_or_l2=l1)
-    loss_z, _ = loss_CO_symmetric(TCO_possible_gt, TCO_pred_z, points, l1_or_l2=l1)
-    return loss_orn + loss_xy + loss_z
+    loss_orn, _, TCO_points_possible_gt_orn, TCO_pred_points_orn = loss_CO_symmetric(TCO_possible_gt, TCO_pred_orn, points, l1_or_l2=l1)
+    loss_xy, _, TCO_points_possible_gt_xy, TCO_pred_points_xy = loss_CO_symmetric(TCO_possible_gt, TCO_pred_xy, points, l1_or_l2=l1)
+    loss_z, _ , TCO_points_possible_gt_z, TCO_pred_points_z = loss_CO_symmetric(TCO_possible_gt, TCO_pred_z, points, l1_or_l2=l1)
+    # images = wandb.Image(
+    # image_array, 
+    # caption="Top: Output, Bottom: Input"
+    # )       
+    # wandb.log({"examples": images})
+          
+    # points_debug_file_path = DEBUG_DATA_DIR / f'debug_points_{EPOCH}_{iter}.npz'
+    # np.savez(points_debug_file_path, points=points.detach().cpu(), 
+    #          TCO_points_possible_gt_orn=TCO_points_possible_gt_orn.detach().cpu(),
+    #          TCO_pred_points_orn=TCO_pred_points_orn.detach().cpu(),
+    #          TCO_points_possible_gt_xy=TCO_points_possible_gt_xy.detach().cpu(),
+    #          TCO_pred_points_xy=TCO_pred_points_xy.detach().cpu(),
+    #          TCO_points_possible_gt_z=TCO_points_possible_gt_z.detach().cpu(),
+    #          TCO_pred_points_z=TCO_pred_points_z.detach().cpu())
+    # print(f'debug_points_{EPOCH}_{_iteration}.npz at {points_debug_file_path}')
+    log_dict = {"TCO_pred_orn": TCO_pred_orn,
+                "TCO_pred_xy": TCO_pred_xy,
+                "TCO_pred_z": TCO_pred_z,
+                "loss_orn": loss_orn,
+                "loss_xy": loss_xy,
+                "loss_z": loss_z
+    }
+    
+    wandb.log({"loss_orn": torch.sum(loss_orn) / wandb.config.batch_size,
+                "loss_xy": torch.sum(loss_xy) / wandb.config.batch_size,
+                "loss_z": torch.sum(loss_z) / wandb.config.batch_size
+    })
+    return loss_orn
+    # return loss_orn + loss_xy + loss_z
 
 
 def loss_refiner_CO_disentangled_quaternions(TCO_possible_gt,
                                              TCO_input, refiner_outputs,
-                                             K_crop, points):
+                                             K_crop, points, _iteration=None):
     bsz = TCO_possible_gt.shape[0]
     assert TCO_possible_gt.shape[0] == bsz
     assert TCO_input.shape[0] == bsz
@@ -115,10 +151,18 @@ def loss_refiner_CO_disentangled_quaternions(TCO_possible_gt,
     loss_orn, _ = loss_CO_symmetric(TCO_possible_gt, TCO_pred_orn, points, l1_or_l2=l1)
     loss_xy, _ = loss_CO_symmetric(TCO_possible_gt, TCO_pred_xy, points, l1_or_l2=l1)
     loss_z, _ = loss_CO_symmetric(TCO_possible_gt, TCO_pred_z, points, l1_or_l2=l1)
+    logger.info(f"TCO_possible_gt {TCO_possible_gt}")
+    logger.info(f"TCO_pred_orn {TCO_pred_orn}")    
+    logger.info(f"TCO_pred_xy {TCO_pred_xy}")
+    logger.info(f"TCO_pred_z {TCO_pred_z}")    
+    logger.info(f"quaternions loss_orn: {loss_orn}")
+    logger.info(f"quaternions loss_xy: {loss_xy}")
+    logger.info(f"quaternions loss_z: {loss_z}")
     return loss_orn + loss_xy + loss_z
 
 
 def TCO_init_from_boxes(z_range, boxes, K):
+    # bracket_aseembly, better result
     # Used in the paper
     assert len(z_range) == 2
     assert boxes.shape[-1] == 4
@@ -136,6 +180,7 @@ def TCO_init_from_boxes(z_range, boxes, K):
 
 
 def TCO_init_from_boxes_zup_autodepth(boxes_2d, model_points_3d, K):
+    # For bop: z axis of object coordinate frame is parrell to the camera y axis
     # User in BOP20 challenge
     assert boxes_2d.shape[-1] == 4
     assert boxes_2d.dim() == 2
@@ -163,8 +208,6 @@ def TCO_init_from_boxes_zup_autodepth(boxes_2d, model_points_3d, K):
     z_from_dx = fxfy[:, 0] * deltax_3d / bb_deltax
     z_from_dy = fxfy[:, 1] * deltay_3d / bb_deltay
 
-    # z = z_from_dx.unsqueeze(1)
-    # z = z_from_dy.unsqueeze(1)
     z = (z_from_dy.unsqueeze(1) + z_from_dx.unsqueeze(1)) / 2
 
     xy_init = ((bb_xy_centers - cxcy) * z) / fxfy

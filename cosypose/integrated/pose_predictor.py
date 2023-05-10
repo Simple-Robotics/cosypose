@@ -24,6 +24,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
 
     @torch.no_grad()
     def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
+        # logger.info(f'batched_model_predictions {images.shape} {self.bsz_objects} ')
         timer = Timer()
         timer.start()
 
@@ -39,6 +40,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             labels = obj_inputs.infos['label'].values
             im_ids = obj_inputs.infos['batch_im_id'].values
             images_ = images[im_ids]
+            logger.debug(f'batched_model_predictions {batch_ids} {im_ids} {images_.shape}')
+            # print(obj_inputs.poses)
             K_ = K[im_ids]
             TCO_input = obj_inputs.poses
             outputs = model(images=images_, K=K_, TCO=TCO_input,
@@ -65,12 +68,15 @@ class CoarseRefinePosePredictor(torch.nn.Module):
     def make_TCO_init(self, detections, K):
         K = K[detections.infos['batch_im_id'].values]
         boxes = detections.bboxes
+        logger.debug(f'make tco init {self.coarse_model.cfg.init_method}')
         if self.coarse_model.cfg.init_method == 'z-up+auto-depth':
             meshes = self.coarse_model.mesh_db.select(detections.infos['label'])
             points_3d = meshes.sample_points(2000, deterministic=True)
             TCO_init = TCO_init_from_boxes_zup_autodepth(boxes, points_3d, K)
+        elif self.coarse_model.cfg.init_method == 'from_boxes':
+            TCO_init = TCO_init_from_boxes(z_range=(0.3, 0.3), boxes=boxes, K=K)
         else:
-            TCO_init = TCO_init_from_boxes(z_range=(1.0, 1.0), boxes=boxes, K=K)
+            TCO_init = TCO_init_from_boxes(z_range=(0.3, 0.3), boxes=boxes, K=K)
         return tc.PandasTensorCollection(infos=detections.infos, poses=TCO_init)
 
     def get_predictions(self, images, K,
@@ -92,7 +98,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                 preds[f'coarse/iteration={n}'] = coarse_preds[f'iteration={n}']
             data_TCO = coarse_preds[f'iteration={n_coarse_iterations}']
         else:
-            assert n_coarse_iterations == 0
+            # assert n_coarse_iterations == 0
             data_TCO = data_TCO_init
             preds[f'external_coarse'] = data_TCO
 

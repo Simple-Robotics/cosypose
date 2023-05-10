@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from collections import defaultdict
+from cosypose.config import LOCAL_DATA_DIR
 
 from cosypose.utils.logging import get_logger
 from cosypose.datasets.samplers import DistributedSceneSampler
@@ -81,16 +82,17 @@ class MultiviewPredictionRunner:
                         n_coarse_iterations=1, n_refiner_iterations=1,
                         sv_score_th=0.0, skip_mv=True,
                         use_detections_TCO=False):
-
         assert detections is not None
         if detections is not None:
             mask = (detections.infos['score'] >= sv_score_th)
             detections = detections[np.where(mask)[0]]
             detections.infos['det_id'] = np.arange(len(detections))
             det_index = detections.infos.set_index(['scene_id', 'view_id']).sort_index()
-
+        
         predictions = defaultdict(list)
-        for data in tqdm(self.dataloader):
+        DEBUG_DATA_DIR = LOCAL_DATA_DIR / 'debug_data'
+        detections_debug = dict()
+        for frame_id, data in enumerate(tqdm(self.dataloader)):
             images = data['images'].cuda().float().permute(0, 3, 1, 2) / 255
             cameras = data['cameras'].cuda().float()
             gt_detections = data['gt_detections'].cuda().float()
@@ -99,33 +101,45 @@ class MultiviewPredictionRunner:
             view_ids = np.unique(gt_detections.infos['view_id'])
             group_id = np.unique(gt_detections.infos['group_id'])
             n_gt_dets = len(gt_detections)
+            detections_debug[frame_id] = dict()
+            detections_debug[frame_id]['gt_detections'] = gt_detections.tensors
             logger.debug(f"{'-'*80}")
             logger.debug(f'Scene: {scene_id}')
             logger.debug(f'Views: {view_ids}')
             logger.debug(f'Group: {group_id}')
             logger.debug(f'Image has {n_gt_dets} gt detections. (not used)')
-
+        
             if detections is not None:
+                print("detections", detections, "cameras", cameras)
                 keep_ids, batch_im_ids = [], []
                 for group_name, group in cameras.infos.groupby(['scene_id', 'view_id']):
                     if group_name in det_index.index:
                         other_group = det_index.loc[group_name]
+                        print("other_group", other_group)
                         keep_ids_ = other_group['det_id']
                         batch_im_id = np.unique(group['batch_im_id']).item()
-                        batch_im_ids.append(np.ones(len(keep_ids_)) * batch_im_id)
+                        print("len(keep_ids_)", keep_ids_)
+                        if isinstance(keep_ids_, np.int64):
+                            keep_ids_ = np.asarray([keep_ids_])
+                            batch_im_ids.append(np.ones(1) * batch_im_id)
+                        else:
+                            batch_im_ids.append(np.ones(len(keep_ids_)) * batch_im_id)
                         keep_ids.append(keep_ids_)
                 if len(keep_ids) > 0:
                     keep_ids = np.concatenate(keep_ids)
                     batch_im_ids = np.concatenate(batch_im_ids)
                 detections_ = detections[keep_ids]
+                detections_debug[frame_id]['detections'] = detections_.tensors # already cpu numpy
                 detections_.infos['batch_im_id'] = np.array(batch_im_ids).astype(np.int)
             else:
                 raise ValueError('No detections')
             detections_ = detections_.cuda().float()
             detections_.infos['group_id'] = group_id.item()
+            
 
             sv_preds, mv_preds = dict(), dict()
             if len(detections_) > 0:
+                # just load detection from model output
                 data_TCO_init = detections_ if use_detections_TCO else None
                 detections__ = detections_ if not use_detections_TCO else None
                 candidates, sv_preds = pose_predictor.get_predictions(
@@ -141,14 +155,16 @@ class MultiviewPredictionRunner:
                         candidates, cameras,
                     )
             logger.debug(f"{'-'*80}")
-
+            logger.debug(f'len of detections. {len(detections_)}')
             for k, v in sv_preds.items():
                 predictions[k].append(v.cpu())
-
+            
             for k, v in mv_preds.items():
                 predictions[k].append(v.cpu())
-
+        detection_debug_fpath = DEBUG_DATA_DIR / "detection_debug.pth.tar"
+        # torch.save(detections_debug, detection_debug_fpath)
         predictions = dict(predictions)
+        logger.debug(f'predictions. {predictions}')
         for k, v in predictions.items():
             predictions[k] = tc.concatenate(v)
         return predictions

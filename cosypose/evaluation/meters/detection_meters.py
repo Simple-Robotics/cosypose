@@ -177,7 +177,7 @@ class DetectionMeter(Meter):
 
         df = pred_df[['label', valid_k, 'score']].to_dataframe().set_index(['label'])
         for label, label_n_gt in n_gts.items():
-            if df.index.contains(label):
+            if label in df.index:
                 label_df = df.loc[[label]]
                 if label_df[valid_k].sum() > 0:
                     ap, label_df = compute_ap(label_df, label_n_gt)

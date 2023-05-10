@@ -55,7 +55,7 @@ if __name__ == '__main__':
     cfg.pretrain_coco = True
 
     # Training
-    cfg.batch_size = 2
+    cfg.batch_size = 1
     cfg.epoch_size = 5000
     cfg.n_epochs = 600
     cfg.lr_epoch_decay = 200
@@ -81,6 +81,8 @@ if __name__ == '__main__':
         cfg.input_resize = (480, 640)
     elif 'bop-' in args.config:
         cfg.input_resize = None
+    elif args.config == 'bracket_assembly':
+        cfg.input_resize = (480, 640)
     else:
         raise ValueError
 
@@ -100,7 +102,15 @@ if __name__ == '__main__':
         cfg.input_resize = bop_cfg['input_resize']
         if len(bop_cfg['test_ds_name']) > 0:
             cfg.test_ds_names = bop_cfg['test_ds_name']
-
+    elif args.config == 'bracket_assembly':
+        from cosypose.bop_config import BOP_CONFIG
+        from cosypose.bop_config import PBR_DETECTORS
+        bop_cfg = BOP_CONFIG[args.config]
+        cfg.train_ds_names = [(bop_cfg['train_pbr_ds_name'][0], 1)]
+        cfg.val_ds_names = cfg.train_ds_names
+        cfg.input_resize = bop_cfg['input_resize']
+        if len(bop_cfg['test_ds_name']) > 0:
+            cfg.test_ds_names = bop_cfg['test_ds_name']
     else:
         raise ValueError(args.config)
     cfg.val_ds_names = cfg.train_ds_names

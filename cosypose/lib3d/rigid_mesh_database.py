@@ -6,7 +6,8 @@ from copy import deepcopy
 from .mesh_ops import get_meshes_bounding_boxes, sample_points
 from .symmetries import make_bop_symmetries
 from cosypose.utils.tensor_collection import TensorCollection
-
+from cosypose.utils.logging import get_logger
+logger = get_logger(__name__)
 
 class MeshDataBase:
     def __init__(self, obj_list):
@@ -49,10 +50,10 @@ class MeshDataBase:
             symmetries.append(torch.as_tensor(symmetries_n))
             points.append(torch.as_tensor(points_n))
             labels.append(label)
-
         labels = np.array(labels)
         points = pad_stack_tensors(points, fill='select_random', deterministic=True)
         symmetries = pad_stack_tensors(symmetries, fill=torch.eye(4), deterministic=True)
+        logger.info(f"symmetries {symmetries}")
         return BatchedMeshes(new_infos, labels, points, symmetries).float()
 
 
@@ -61,6 +62,7 @@ class BatchedMeshes(TensorCollection):
         super().__init__()
         self.infos = infos
         self.label_to_id = {label: n for n, label in enumerate(labels)}
+        print("label_to_id", self.label_to_id)
         self.labels = np.asarray(labels)
         self.register_tensor('points', points)
         self.register_tensor('symmetries', symmetries)

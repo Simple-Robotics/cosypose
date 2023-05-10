@@ -28,7 +28,7 @@ class UrdfDataset:
 class BOPUrdfDataset(UrdfDataset):
     def __init__(self, ds_dir):
         super().__init__(ds_dir)
-        self.index['scale'] = 0.001
+        self.index['scale'] = 1.0
 
 
 class OneUrdfDataset:

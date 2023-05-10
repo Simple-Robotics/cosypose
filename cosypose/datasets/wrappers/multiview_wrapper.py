@@ -36,6 +36,7 @@ class MultiViewWrapper(SceneDatasetWrapper):
     def __getitem__(self, idx):
         row = self.frame_index.iloc[idx]
         ds_ids = row['scene_ds_ids']
+        # print('multiview wrapper get item', idx, ds_ids, row)
         rgbs, masks, obss = [], [], []
         for ds_id in ds_ids:
             rgb, mask, obs = self.scene_ds[ds_id]

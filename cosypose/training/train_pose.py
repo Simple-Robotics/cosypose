@@ -9,9 +9,9 @@ from pathlib import Path
 from torchnet.meter import AverageValueMeter
 from collections import defaultdict
 import torch.distributed as dist
+import wandb
 
 from cosypose.config import EXP_DIR
-
 from torch.utils.data import DataLoader, ConcatDataset
 from cosypose.utils.multiepoch_dataloader import MultiEpochDataLoader
 
@@ -26,7 +26,7 @@ from cosypose.evaluation.eval_runner.pose_eval import PoseEvaluation
 from cosypose.evaluation.runner_utils import run_pred_eval
 from cosypose.datasets.wrappers.multiview_wrapper import MultiViewWrapper
 from cosypose.scripts.run_cosypose_eval import (
-    load_pix2pose_results, load_posecnn_results, get_pose_meters)
+    load_pix2pose_results, load_posecnn_results, load_custom_detection_from_gt, get_pose_meters)
 
 from cosypose.rendering.bullet_batch_renderer import BulletBatchRenderer
 from cosypose.lib3d.rigid_mesh_database import MeshDataBase
@@ -109,7 +109,8 @@ def make_eval_bundle(args, model_training):
         skip_mv=True,
     )
     for ds_name in args.test_ds_names:
-        assert ds_name in {'ycbv.test.keyframes', 'tless.primesense.test'}
+        # TODO: add  key frame / triage
+        # assert ds_name in {'ycbv.test.keyframes', 'tless.primesense.test'}
         scene_ds = make_scene_dataset(ds_name, n_frames=args.n_test_frames)
         logger.info(f'TEST: Loaded {ds_name} with {len(scene_ds)} images.')
         scene_ds_pred = MultiViewWrapper(scene_ds, n_views=1)
@@ -134,6 +135,12 @@ def make_eval_bundle(args, model_training):
             det_k = 'posecnn_detections'
             coarse_k = 'posecnn_coarse'
 
+        elif 'bracket_assembly' in ds_name:
+            detections = load_custom_detection_from_gt(train_classes=['5']).cpu()
+            # TODO: add handler for multiple detections
+            coarse_detections = detections
+            det_k = 'pix2pose_detections'
+            coarse_k = 'pix2pose_coarse'
         else:
             raise ValueError(ds_name)
 
@@ -187,7 +194,6 @@ def run_eval(eval_bundle, epoch):
 
 def train_pose(args):
     torch.set_num_threads(1)
-
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
         resume_args = yaml.load((resume_dir / 'config.yaml').read_text())
@@ -198,7 +204,6 @@ def train_pose(args):
     args.train_coarse = not args.train_refiner
     args.save_dir = EXP_DIR / args.run_id
     args = check_update_config(args)
-
     logger.info(f"{'-'*80}")
     for k, v in args.__dict__.items():
         logger.info(f"{k}: {v}")
@@ -224,6 +229,7 @@ def train_pose(args):
         return ConcatDataset(datasets)
 
     scene_ds_train = make_datasets(args.train_ds_names)
+    logger.info(f"scene_ds_train, {len(scene_ds_train)} images")
     scene_ds_val = make_datasets(args.val_ds_names)
 
     ds_kwargs = dict(
@@ -297,7 +303,11 @@ def train_pose(args):
     )
     lr_scheduler.last_epoch = start_epoch - 1
     lr_scheduler.step()
-
+    config_dict = args
+    wandb.init(
+            project=args.config,
+            config=config_dict
+    )
     for epoch in range(start_epoch, end_epoch):
         meters_train = defaultdict(lambda: AverageValueMeter())
         meters_val = defaultdict(lambda: AverageValueMeter())
@@ -380,4 +390,5 @@ def train_pose(args):
         if get_rank() == 0:
             log(config=args, model=model, epoch=epoch,
                 log_dict=log_dict, test_dict=test_dict)
+        
         dist.barrier()

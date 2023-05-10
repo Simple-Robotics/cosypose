@@ -37,6 +37,7 @@ class BopRecordingScene(BaseScene):
         self.n_objects_interval = n_objects_interval
         self.objects_xyz_interval = objects_xyz_interval
         self.n_objects_cache = len(self.urdf_ds)
+        print(self.n_objects_cache, n_objects_interval)
         assert self.n_objects_cache >= max(n_objects_interval)
         self.away_transform = (0, 0, 1000), (0, 0, 0, 1)
         self.proba_falling = proba_falling

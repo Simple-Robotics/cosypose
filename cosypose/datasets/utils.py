@@ -32,6 +32,7 @@ def make_detections_from_segmentation(masks):
 
     for mask_n in masks:
         dets_n = dict()
+        # print(torch.unique(mask_n, sorted=True))
         for uniq in torch.unique(mask_n, sorted=True):
             ids = np.where((mask_n == uniq).cpu().numpy())
             x1, y1, x2, y2 = np.min(ids[1]), np.min(ids[0]), np.max(ids[1]), np.max(ids[0])

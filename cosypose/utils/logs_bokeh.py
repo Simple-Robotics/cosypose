@@ -37,7 +37,7 @@ class Plotter:
         for run_id, color in zip(run_ids, self.colors_hex):
             run_dir = self.log_dir / run_id
             assert run_dir.exists(), f'{run_id} does not exists.'
-            config = yaml.full_load((run_dir / 'config.yaml').read_text())
+            config = yaml.unsafe_load((run_dir / 'config.yaml').read_text())
             configs[run_id] = self.fill_config_fn(config)
 
             log_path = run_dir / 'log.txt'
@@ -54,9 +54,9 @@ class Plotter:
                     ds_eval[ds] = pd.read_json(f, lines=True)
                     ds_eval[ds] = ds_eval[ds].groupby('epoch').last().reset_index()
             eval_dicts[run_id] = ds_eval
+            print(log_df.keys())
 
             colors[run_id] = color
-
         self.colors = colors
         self.log_dicts = log_dicts
         self.eval_dicts = eval_dicts

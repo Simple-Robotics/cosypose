@@ -61,6 +61,13 @@ class PoseEvaluation:
     def evaluate(self, obj_predictions, device='cuda'):
         for meter in self.meters.values():
             meter.reset()
+        # TODO: ADD PER CATEGORY INFERENCE
+        # all_categories = []
+        # obj_predictions_copy = obj_predictions.copy()
+        # print(obj_data_gt.infos['frame_obj_id'], obj_data_gt.infos['label'])
+        # for obj_category in all_categories:
+        #     obj_predictions_copy.frame_index = obj_predictions.frame_index.loc[obj_predictions['']==obj_category]
+
         obj_predictions = obj_predictions.to(device)
         for obj_data_gt in tqdm(self.dataloader):
             for k, meter in self.meters.items():
@@ -69,7 +76,11 @@ class PoseEvaluation:
 
     def summary(self):
         summary, dfs = dict(), dict()
+        # all_categories = []
         for meter_k, meter in sorted(self.meters.items()):
+            
+            # print(obj_data_gt.infos['frame_obj_id'], obj_data_gt.infos['label'])
+            # for obj_category in all_categories:
             meter.gather_distributed(tmp_dir=self.tmp_dir)
             if get_rank() == 0 and len(meter.datas) > 0:
                 summary_, df_ = meter.summary()

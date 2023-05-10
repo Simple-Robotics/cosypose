@@ -35,6 +35,7 @@ class Plotter:
 
     def plot_maskrcnn_bboxes(self, f, detections, colors='red', text=None, text_auto=True, line_width=2, source_id=''):
         boxes = detections.bboxes
+        # boxes = detections
         if text_auto:
             text = [f'{row.label} {row.score:.2f}' for _, row in detections.infos.iterrows()]
 

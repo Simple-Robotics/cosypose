@@ -39,6 +39,7 @@ def build_index(ds_dir, save_file, split, save_file_annotations):
         for f in ('scene_camera.json', 'scene_gt_info.json', 'scene_gt.json'):
             path = (scene_dir / f)
             if path.exists():
+                print(path, f)
                 annotations_scene[f.split('.')[0]] = json.loads(path.read_text())
         annotations[scene_id] = annotations_scene
         # for view_id in annotations_scene['scene_gt_info'].keys():
@@ -56,9 +57,10 @@ def build_index(ds_dir, save_file, split, save_file_annotations):
 
 
 class BOPDataset:
-    def __init__(self, ds_dir, split='train', load_depth=False):
+    def __init__(self, ds_dir, split='train', load_depth=False, train_classes=None, visib_fract_thres=0.5):
         ds_dir = Path(ds_dir)
         self.ds_dir = ds_dir
+        self.train_classes = train_classes
         assert ds_dir.exists(), 'Dataset does not exists.'
 
         self.split = split
@@ -73,9 +75,31 @@ class BOPDataset:
             split=split)
         self.frame_index = pd.read_feather(save_file_index).reset_index(drop=True)
         self.annotations = pickle.loads(save_file_annotations.read_bytes())
-
+        # TODO
         models_infos = json.loads((ds_dir / 'models' / 'models_info.json').read_text())
-        self.all_labels = [f'obj_{int(obj_id):06d}' for obj_id in models_infos.keys()]
+        # filter detection model, only load frames_debug
+        if 'debug' in str(ds_dir):
+            frames_debug = [('000000', '62')]
+            annotations_debug = {}
+            frame_df_debug = pd.DataFrame()
+            for scene_index, t_index in frames_debug:
+                frame_df_debug = frame_df_debug.append(
+                    self.frame_index.loc[
+                        (self.frame_index['scene_id']==int(scene_index))
+                            & (self.frame_index['view_id']==int(t_index))
+                        ]
+                        )
+                annotations_debug[scene_index] = annotations_debug.get(scene_index, {})
+                for key, value_dict in self.annotations[scene_index].items():                
+                    annotations_debug[scene_index][key] = annotations_debug[scene_index].get(key, {})
+                    annotations_debug[scene_index][key][t_index] = value_dict[t_index]
+            self.annotations = annotations_debug
+            self.frame_index = frame_df_debug
+        self.visib_fract_thres = visib_fract_thres
+        if train_classes is not None:
+            self.all_labels = [f'obj_{int(obj_id):06d}' for obj_id in models_infos.keys() if str(obj_id) in train_classes]
+        else:
+            self.all_labels = [f'obj_{int(obj_id):06d}' for obj_id in models_infos.keys()]
         self.load_depth = load_depth
 
     def __len__(self):
@@ -108,7 +132,7 @@ class BOPDataset:
         cam_annotation = self.annotations[scene_id_str]['scene_camera'][str(view_id)]
         if 'cam_R_w2c' in cam_annotation:
             RC0 = np.array(cam_annotation['cam_R_w2c']).reshape(3, 3)
-            tC0 = np.array(cam_annotation['cam_t_w2c']) * 0.001
+            tC0 = np.array(cam_annotation['cam_t_w2c'])# * 0.001
             TC0 = Transform(RC0, tC0)
         else:
             TC0 = Transform(np.eye(3), np.zeros(3))
@@ -126,12 +150,16 @@ class BOPDataset:
             n_objects = len(annotation)
             visib = self.annotations[scene_id_str]['scene_gt_info'][str(view_id)]
             for n in range(n_objects):
+                if visib[n]['visib_fract'] < self.visib_fract_thres:
+                    continue
                 RCO = np.array(annotation[n]['cam_R_m2c']).reshape(3, 3)
-                tCO = np.array(annotation[n]['cam_t_m2c']) * 0.001
+                tCO = np.array(annotation[n]['cam_t_m2c']) #* 0.001
                 TCO = Transform(RCO, tCO)
                 T0O = T0C * TCO
                 T0O = T0O.toHomogeneousMatrix()
                 obj_id = annotation[n]['obj_id']
+                if self.train_classes and str(obj_id) not in self.train_classes:
+                    continue
                 name = f'obj_{int(obj_id):06d}'
                 bbox_visib = np.array(visib[n]['bbox_visib'])
                 x, y, w, h = bbox_visib
@@ -159,7 +187,7 @@ class BOPDataset:
             if not depth_path.exists():
                 depth_path = depth_path.with_suffix('.tif')
             depth = np.array(inout.load_depth(depth_path))
-            camera['depth'] = depth * cam_annotation['depth_scale'] / 1000
+            camera['depth'] = depth * cam_annotation['depth_scale'] #/ 1000
 
         obs = dict(
             objects=objects,

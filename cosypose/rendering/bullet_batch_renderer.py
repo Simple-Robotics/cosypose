@@ -4,7 +4,9 @@ import multiprocessing
 
 from cosypose.lib3d.transform_ops import invert_T
 from .bullet_scene_renderer import BulletSceneRenderer
+from cosypose.utils.logging import get_logger
 
+logger = get_logger(__name__)
 
 def init_renderer(urdf_ds, preload=True, gpu_renderer=True):
     renderer = BulletSceneRenderer(urdf_ds=urdf_ds,
@@ -87,6 +89,7 @@ class BulletBatchRenderer:
             images = torch.as_tensor(np.stack(images, axis=0))
         images = images.float().permute(0, 3, 1, 2) / 255
 
+        logger.debug(f'render{obj_infos, TCO, K, images.shape}')
         if render_depth:
             if self.gpu_renderer:
                 depths = torch.as_tensor(np.stack(depths, axis=0)).pin_memory().cuda(non_blocking=True)

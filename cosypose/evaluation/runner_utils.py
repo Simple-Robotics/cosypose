@@ -11,16 +11,17 @@ logger = get_logger(__name__)
 def run_pred_eval(pred_runner, pred_kwargs, eval_runner, eval_preds=None):
     all_predictions = dict()
     for pred_prefix, pred_kwargs_n in pred_kwargs.items():
-        print("Prediction :", pred_prefix)
         preds = pred_runner.get_predictions(**pred_kwargs_n)
         for preds_name, preds_n in preds.items():
             all_predictions[f'{pred_prefix}/{preds_name}'] = preds_n
+    logger.debug("Prediction :", pred_prefix, pred_kwargs_n)
 
     all_predictions = OrderedDict({k: v for k, v in sorted(all_predictions.items(), key=lambda item: item[0])})
     eval_metrics, eval_dfs = dict(), dict()
 
+
     for preds_k, preds in all_predictions.items():
-        print("Evaluation :", preds_k)
+        print("Evaluation :", preds_k, preds)
         if eval_preds is None or preds_k in eval_preds:
             eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds)
 
@@ -49,6 +50,7 @@ def format_results(predictions,
     df = defaultdict(list)
     summary_txt = ''
     for k, v in eval_metrics.items():
+        logger.debug(f"eval_metrics, {k}, {v}")
         summary_txt += f"\n{k}\n{'-'*80}\n"
         for k_, v_ in v.items():
             summary[f'{k}/{k_}'] = v_

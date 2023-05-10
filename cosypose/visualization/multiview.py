@@ -65,7 +65,7 @@ def make_scene_renderings(objects, cameras, urdf_ds_name, distance=1.5, theta=np
 
     # Patch the scales for visualization
     is_camera = np.array(['camera' in label for label in urdf_ds.index['label']])
-    urdf_ds.index.loc[~is_camera, 'scale'] = object_scale * 0.001
+    urdf_ds.index.loc[~is_camera, 'scale'] = object_scale #* 0.001
     urdf_ds.index.loc[is_camera, 'scale'] = camera_scale
 
     if use_nms3d:

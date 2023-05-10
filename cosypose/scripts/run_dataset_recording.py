@@ -33,7 +33,7 @@ def make_cfg(cfg_name,
         gpu_renderer=True,
         texture_ds='shapenet',
         domain_randomization=True,
-        n_objects_interval=(3, 9),
+        n_objects_interval=(3, 7),
         proba_falling=0.5,
         border_check=False,
         n_textures_cache=100,
@@ -56,6 +56,14 @@ def make_cfg(cfg_name,
             resolution=(720, 540),
             textures_on_objects=True,
             camera_distance_interval=(0.65, 0.94),
+        )
+
+    elif cfg_name == 'bracket_assembly':
+        cfg.scene_kwargs.update(
+            urdf_ds='bracket_assembly',
+            resolution=(640, 480),
+            textures_on_objects=True,
+            camera_distance_interval=(0.15, 0.45),
         )
 
     elif resume_ds_name:

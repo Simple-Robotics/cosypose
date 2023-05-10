@@ -17,7 +17,7 @@ def run_meshlab_script(in_path, out_path, script, cd_dir=None, has_textures=True
     out_path = Path(out_path)
     n = np.random.randint(1e6)
     script_path = Path(f'/dev/shm/{n}.mlx')
-    script_path.write_text(script)
+    print(script_path.write_text(script))
 
     if cd_dir is None:
         cd_dir = '.'

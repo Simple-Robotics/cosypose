@@ -51,16 +51,16 @@ def make_cfg(args):
     cfg.coarse_run_id_for_test = None
 
     # Optimizer
-    cfg.lr = 3e-4
+    cfg.lr = 5e-5
     cfg.weight_decay = 0.
-    cfg.n_epochs_warmup = 50
+    cfg.n_epochs_warmup = 1 # 300, 50
     cfg.lr_epoch_decay = 500
     cfg.clip_grad_norm = 0.5
 
     # Training
-    cfg.batch_size = 32
-    cfg.epoch_size = 115200
-    cfg.n_epochs = 700
+    cfg.batch_size = 8
+    cfg.epoch_size = 2000 # 4 * cfg.batch_size
+    cfg.n_epochs = 400 # 700
     cfg.n_dataloader_workers = N_WORKERS
 
     # Method
@@ -69,6 +69,7 @@ def make_cfg(args):
     cfg.TCO_input_generator = 'fixed'
     cfg.n_iterations = 1
     cfg.min_area = None
+    cfg.config = args.config
 
     if 'bop-' in args.config:
         from cosypose.bop_config import BOP_CONFIG
@@ -89,16 +90,16 @@ def make_cfg(args):
             raise ValueError
 
         cfg.val_ds_names = cfg.train_ds_names
-        cfg.urdf_ds_name = bop_cfg['urdf_ds_name']
-        cfg.object_ds_name = bop_cfg['obj_ds_name']
+        cfg.urdf_ds_name = bop_cfg['urdf_ds_name'] # bracket_assembly
+        cfg.object_ds_name = bop_cfg['obj_ds_name'] # bracket_assembly
         cfg.input_resize = bop_cfg['input_resize']
         cfg.test_ds_names = []
-
+    
         if model_type == 'coarse':
             cfg.init_method = 'z-up+auto-depth'
             cfg.TCO_input_generator = 'fixed+trans_noise'
             run_comment = 'transnoise-zxyavg'
-        elif model_type == 'refiner':
+        elif model_type == 'refiner': # train_refiner: true
             cfg.TCO_input_generator = 'gt+noise'
         else:
             raise ValueError
@@ -167,6 +168,51 @@ def make_cfg(args):
 
         else:
             raise ValueError(args.config)
+
+    elif 'bracket_assembly' in args.config:
+        from cosypose.bop_config import BOP_CONFIG
+        from cosypose.bop_config import PBR_COARSE, PBR_REFINER
+
+        bop_cfg = BOP_CONFIG["bracket_assembly"]
+        train_ds_names = bop_cfg['train_pbr_ds_name'][0]
+        object_ds_name = bop_cfg['obj_ds_name']
+        
+        if 'debug' in args.config:
+            object_ds_name = object_ds_name + '_debug'
+            train_ds_names = train_ds_names + '_debug'
+        if 'nut' in args.config:
+            object_ds_name = object_ds_name + '_nut'
+            train_ds_names = train_ds_names + '_nut'
+        if 'nosym' in args.config:
+            object_ds_name = object_ds_name + '_nosym'
+            train_ds_names = train_ds_names + '_nosym'
+        if 'noaug' in args.config:
+            cfg.rgb_augmentation=False
+            cfg.background_augmentation=False
+            cfg.gray_augmentation=False
+        cfg.train_ds_names = [(train_ds_names, 1)]
+        cfg.object_ds_name = object_ds_name
+        if '04_22' in args.config:
+            # object_set = object_set + '_04_22'
+            train_ds_names = train_ds_names + '_04_22'
+            cfg.train_ds_names.append((train_ds_names, 1))
+
+        print("cfg.train_ds_names", cfg.train_ds_names)
+        print("cfg.object_ds_name", cfg.object_ds_name)
+        cfg.val_ds_names = cfg.train_ds_names
+        cfg.urdf_ds_name = bop_cfg['urdf_ds_name']
+        cfg.input_resize = bop_cfg['input_resize']
+        
+        # cfg.test_ds_names = ["bracket_assembly"]
+        cfg.val_epoch_interval = 50
+        cfg.n_test_frames = 100
+        if 'coarse' in args.config:
+            cfg.init_method = 'from_boxes'
+            # cfg.TCO_input_generator = 'fixed+trans_noise'
+            cfg.TCO_input_generator = 'fixed+trans_noise'
+        elif 'refiner' in args.config:
+            cfg.TCO_input_generator = 'gt+noise'
+        # TODO: cfg.TCO_input_generator
     elif args.resume:
         pass
 
@@ -179,13 +225,13 @@ def make_cfg(args):
     cfg.run_id = f'{args.config}-{run_comment}-{N_RAND}'
 
     if args.debug:
+        # maybe refactor, disentangle epoches and datasets
         cfg.test_ds_names = []
-        cfg.n_epochs = 4
-        cfg.val_epoch_interval = 1
+        cfg.n_epochs = 400
+        cfg.val_epoch_interval = 10
         cfg.batch_size = 4
         cfg.epoch_size = 4 * cfg.batch_size
         cfg.run_id = 'debug-' + cfg.run_id
-        cfg.background_augmentation = True
         cfg.n_dataloader_workers = 8
         cfg.n_rendering_workers = 0
         cfg.n_test_frames = 10
