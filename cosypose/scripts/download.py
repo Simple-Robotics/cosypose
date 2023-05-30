@@ -48,6 +48,10 @@ BOP_DATASETS = {
     'tudl': {
         'splits': ['test_all', 'train_real']
     },
+
+    'hope': {
+        'splits': ['val', 'test_all']
+    },
 }
 
 BOP_DS_NAMES = list(BOP_DATASETS.keys())

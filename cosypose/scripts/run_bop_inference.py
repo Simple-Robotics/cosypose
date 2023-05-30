@@ -246,7 +246,7 @@ def main():
     if args.n_views > 1:
         ds_names = ['hb', 'tless', 'ycbv']
     else:
-        ds_names = ['hb', 'icbin', 'itodd', 'lmo', 'tless', 'tudl', 'ycbv']
+        ds_names = ['hb', 'icbin', 'itodd', 'lmo', 'tless', 'tudl', 'ycbv', 'hope']
     
     if args.dataset is not None:
         assert args.dataset in ds_names, f'{args.dataset} not in {ds_names}'

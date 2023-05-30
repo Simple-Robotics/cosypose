@@ -97,6 +97,10 @@ def make_scene_dataset(ds_name, n_frames=None):
         ds_dir = BOP_DS_DIR / 'ycbv'
         ds = BOPDataset(ds_dir, split='test')
         ds = keep_bop19(ds)
+    elif ds_name == 'hope.bop19':
+        ds_dir = BOP_DS_DIR / 'hope'
+        ds = BOPDataset(ds_dir, split='test')
+        ds = keep_bop19(ds)
 
     elif ds_name == 'hb.pbr':
         ds_dir = BOP_DS_DIR / 'hb'
@@ -119,6 +123,9 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'ycbv.pbr':
         ds_dir = BOP_DS_DIR / 'ycbv'
         ds = BOPDataset(ds_dir, split='train_pbr')
+    # elif ds_name == 'hope.pbr':
+    #     ds_dir = BOP_DS_DIR / 'hope'
+    #     ds = BOPDataset(ds_dir, split='train_pbr')
 
     elif ds_name == 'hb.val':
         ds_dir = BOP_DS_DIR / 'hb'
@@ -126,6 +133,10 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'itodd.val':
         ds_dir = BOP_DS_DIR / 'itodd'
         ds = BOPDataset(ds_dir, split='val')
+    elif ds_name == 'hope.val':
+        ds_dir = BOP_DS_DIR / 'hope'
+        ds = BOPDataset(ds_dir, split='val')
+    
     elif ds_name == 'tudl.train.real':
         ds_dir = BOP_DS_DIR / 'tudl'
         ds = BOPDataset(ds_dir, split='train_real')
@@ -176,6 +187,8 @@ def make_object_dataset(ds_name):
         ds = BOPObjectDataset(BOP_DS_DIR / 'lm/models')
     elif ds_name == 'tudl':
         ds = BOPObjectDataset(BOP_DS_DIR / 'tudl/models')
+    elif ds_name == 'hope':
+        ds = BOPObjectDataset(BOP_DS_DIR / 'hope/models')
 
     else:
         raise ValueError(ds_name)
@@ -208,6 +221,8 @@ def make_urdf_dataset(ds_name):
         ds = BOPUrdfDataset(LOCAL_DATA_DIR / 'urdfs' / 'lm')
     elif ds_name == 'tudl':
         ds = BOPUrdfDataset(LOCAL_DATA_DIR / 'urdfs' / 'tudl')
+    elif ds_name == 'hope':
+        ds = BOPUrdfDataset(LOCAL_DATA_DIR / 'urdfs' / 'hope')
 
     # Custom scenario
     elif 'custom' in ds_name:
