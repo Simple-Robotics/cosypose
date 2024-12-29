@@ -129,7 +129,7 @@ class BOPDataset:
                 RCO = np.array(annotation[n]['cam_R_m2c']).reshape(3, 3)
                 tCO = np.array(annotation[n]['cam_t_m2c']) * 0.001
                 TCO = Transform(RCO, tCO)
-                T0O = T0C * TCO
+                T0O = T0C @ TCO
                 T0O = T0O.toHomogeneousMatrix()
                 obj_id = annotation[n]['obj_id']
                 name = f'obj_{int(obj_id):06d}'
